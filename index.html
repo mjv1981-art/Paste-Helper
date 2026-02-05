@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Paste Helper v20</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#e2e8f0;
+      --shadow:0 10px 30px rgba(2,6,23,.08);
+      --shadow2:0 6px 16px rgba(2,6,23,.08);
+      --accent:#2563eb;
+      --accent2:#1d4ed8;
+      --pill:#f1f5f9;
+      --pillOn:#dbeafe;
+      --pillText:#0f172a;
+      --pillOnText:#1d4ed8;
+      --dangerBg:#fff5f5;
+      --dangerBorder:#fecaca;
+      --mono: Consolas, "Courier New", monospace;
+
+      --hiBg: #fff3b0;
+      --hiBorder:#f59e0b;
+      --hiText:#0f172a;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      max-width: 1180px;
+      margin: 28px auto 40px;
+      padding: 0 16px;
+    }
+    .header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:14px;
+    }
+    .titleBlock h1{
+      margin:0;
+      font-size:22px;
+      letter-spacing:-.2px;
+    }
+    .titleBlock p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+
+    .toolbar{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:12px;
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:10px 10px;
+      margin-top:14px;
+    }
+    .toolbarTitle{
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      margin-right: 6px;
+      white-space:nowrap;
+    }
+
+    .pill{
+      user-select:none;
+      border:1px solid var(--border);
+      background:var(--pill);
+      color:var(--pillText);
+      border-radius:999px;
+      padding:8px 10px;
+      font-size:12px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      transition: transform .03s ease, background .15s ease, border-color .15s ease;
+    }
+    .pill:active{ transform: translateY(1px); }
+    .pill.on{
+      background:var(--pillOn);
+      border-color:#bfdbfe;
+      color:var(--pillOnText);
+    }
+    .pill .dot{
+      width:10px; height:10px;
+      border-radius:999px;
+      border:2px solid #94a3b8;
+      background:transparent;
+    }
+    .pill.on .dot{
+      border-color:var(--accent);
+      background:var(--accent);
+    }
+
+    .btn{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      cursor:pointer;
+      transition: background .15s ease, border-color .15s ease, transform .03s ease;
+      white-space:nowrap;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background:var(--accent);
+      border-color:var(--accent2);
+      color:#fff;
+    }
+    .btn.primary:hover{ background:var(--accent2); }
+    .btn.danger{
+      border-color:var(--dangerBorder);
+      color:#b91c1c;
+      background:var(--dangerBg);
+    }
+    .btn.danger:hover{ background:#ffecec; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:var(--shadow2);
+      overflow:hidden;
+    }
+    .cardHeader{
+      position:relative;
+      padding:12px 12px 10px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .cardHeader .left{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:0;
+    }
+    .cardHeader .cardTitle{
+      font-weight:800;
+      font-size:13px;
+      letter-spacing:.2px;
+      margin:0;
+    }
+    .cardHeader .cardSub{
+      margin:0;
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    textarea{
+      width:100%;
+      height: 340px;
+      resize: vertical;
+      border:0;
+      outline:none;
+      padding:12px;
+      font-family: var(--mono);
+      font-size:12.5px;
+      line-height:1.35;
+      background:#fbfcff;
+    }
+    .copyTopRight{
+      position:absolute;
+      right:10px;
+      top:10px;
+    }
+
+    /* Shared overlay pattern */
+    .overlayWrap{
+      height: 340px;
+      resize: vertical;
+      overflow: auto;
+      padding:0;
+      background:#fbfcff;
+      position: relative;
+    }
+    .overlayPre{
+      margin:0;
+      padding:12px;
+      min-height: 100%;
+      font-family: var(--mono);
+      font-size:12.5px;
+      line-height:1.35;
+      white-space: pre-wrap;
+      word-break: break-word;
+      pointer-events: none;
+      color: transparent;
+    }
+    .hi{
+      background: var(--hiBg);
+      color: var(--hiText);
+      border-bottom: 2px solid var(--hiBorder);
+      border-radius: 3px;
+      padding: 0 1px;
+    }
+    .overlayEdit{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      border:0;
+      outline:none;
+      padding:12px;
+      font-family: var(--mono);
+      font-size:12.5px;
+      line-height:1.35;
+      background: transparent;
+      color: var(--text);
+      caret-color: var(--text);
+      resize: none;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    details.advanced{ width:100%; }
+    details.advanced > summary{
+      list-style:none;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+      width:100%;
+    }
+    details.advanced > summary::-webkit-details-marker{ display:none; }
+    .summaryRow{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .summaryLeft{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .caret{
+      width: 10px; height: 10px;
+      border-right: 2px solid #94a3b8;
+      border-bottom: 2px solid #94a3b8;
+      transform: rotate(-45deg);
+      transition: transform .15s ease;
+      margin-left: 2px;
+      flex: 0 0 auto;
+    }
+    details[open] .caret{ transform: rotate(45deg); }
+
+    .advancedBody{
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      width:100%;
+    }
+    .advHeader{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .advHeader .hint{
+      color:var(--muted);
+      font-size:12px;
+      line-height: 1.3;
+    }
+    .advControls{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap: wrap;
+    }
+    .select{
+      font-size:12px;
+      padding:7px 10px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#fff;
+      color:var(--text);
+    }
+
+    .symbolBox{
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#fbfcff;
+      padding:10px;
+      max-height: 280px;
+      overflow:auto;
+    }
+    .symbolBox .empty{ color:var(--muted); font-size:12px; }
+
+    .symbolGrid{
+      list-style: disc;
+      margin: 0;
+      padding-left: 18px;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-auto-flow: row;
+      gap: 8px 14px;
+      align-items:start;
+    }
+    .symItem{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:12px;
+      min-width: 0;
+    }
+    .symItem label{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+      cursor:pointer;
+    }
+    .symItem code{
+      font-family: var(--mono);
+      background:#f1f5f9;
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:2px 6px;
+      color:#0f172a;
+      white-space:nowrap;
+      flex: 0 0 auto;
+    }
+    .symMeta{
+      color: var(--muted);
+      font-size: 12px;
+      font-family: var(--mono);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width: 0;
+    }
+    .symCount{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #0f172a;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 999px;
+      padding: 1px 6px;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    @media (max-width: 1020px){
+      .symbolGrid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px){
+      .grid{ grid-template-columns: 1fr; }
+      .overlayWrap{ height: 300px; }
+      .symbolGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 420px){
+      .symbolGrid{ grid-template-columns: 1fr; }
+    }
+
+    .status{
+      margin-top: 10px;
+      color:var(--muted);
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .status .mono{
+      font-family: var(--mono);
+      color:#0f172a;
+      background:#f1f5f9;
+      border:1px solid var(--border);
+      padding:2px 6px;
+      border-radius:8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="titleBlock">
+        <h1>Paste Helper</h1>
+        <p>Offline transformer for bullet cleanup + Excel row string formatting (toggle modes + advanced symbol filtering).</p>
+      </div>
+    </div>
+
+    <div class="toolbar" role="group" aria-label="Modes">
+      <span class="toolbarTitle">Modes</span>
+
+      <button class="pill" id="m_strip" onclick="toggleMode('strip')"><span class="dot"></span> Strip weird whitespace</button>
+      <button class="pill" id="m_bullets" onclick="toggleMode('bullets')"><span class="dot"></span> Remove leading bullets/markers</button>
+      <button class="pill" id="m_human" onclick="toggleMode('human')"><span class="dot"></span> Human-accessible symbols</button>
+      <button class="pill" id="m_dot" onclick="toggleMode('dot')"><span class="dot"></span> Remove trailing dot</button>
+      <button class="pill" id="m_trailSym" onclick="toggleMode('trailSym')"><span class="dot"></span> Remove trailing symbol (; or :)</button>
+      <button class="pill" id="m_csv_comma" onclick="toggleCsv('comma')"><span class="dot"></span> TSV ⇒ CSV (,)</button>
+      <button class="pill" id="m_csv_comma_space" onclick="toggleCsv('comma_space')"><span class="dot"></span> TSV ⇒ CSV (, )</button>
+
+      <span style="flex:1 1 auto;"></span>
+      <button class="btn danger" onclick="clearModes()">Clear</button>
+    </div>
+
+    <div class="toolbar" role="group" aria-label="Advanced modes">
+      <details class="advanced" id="advDetails">
+        <summary>
+          <div class="summaryRow">
+            <div class="summaryLeft">
+              <span class="toolbarTitle" style="margin-right:0;">Advanced modes</span>
+              <span class="caret" aria-hidden="true"></span>
+              <span style="color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                Symbol filtering + counters + hover highlight
+              </span>
+            </div>
+            <button class="btn danger" type="button" onclick="clearAdvanced(event)">Clear</button>
+          </div>
+        </summary>
+
+        <div class="advancedBody">
+          <div class="advHeader">
+            <div class="hint">
+              <strong>Symbols used</strong><br/>
+              Untick a symbol to remove it everywhere in the output. Hover a symbol to highlight it in the input + output.
+            </div>
+
+            <div class="advControls">
+              <label style="font-size:12px; color:var(--muted); font-weight:700;">Sort:</label>
+              <select class="select" id="sortMode" onchange="applyPipeline()">
+                <option value="count_desc">Count (descending)</option>
+                <option value="codepoint">U+ codepoint (ascending)</option>
+                <option value="count_asc">Count (ascending)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="symbolBox" id="symbolBox">
+            <div class="empty">Paste text into Input or edit Output to see detected symbols.</div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="grid">
+      <!-- v20: Input also gets overlay highlight -->
+      <section class="card">
+        <div class="cardHeader">
+          <div class="left">
+            <p class="cardTitle">Input</p>
+            <p class="cardSub">Paste from Outlook / Teams / OneNote / Excel</p>
+          </div>
+        </div>
+
+        <div id="inWrap" class="overlayWrap" aria-label="Input area">
+          <pre id="inOverlay" class="overlayPre" aria-hidden="true"></pre>
+          <textarea id="inEdit" class="overlayEdit" spellcheck="false" placeholder="Paste here..."></textarea>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="cardHeader">
+          <div class="left">
+            <p class="cardTitle">Output</p>
+            <p class="cardSub">Editable. Modes apply to the current working text.</p>
+          </div>
+          <div class="copyTopRight">
+            <button class="btn primary" onclick="copyOut()">Copy output</button>
+          </div>
+        </div>
+
+        <div id="outWrap" class="overlayWrap" aria-label="Output area">
+          <pre id="outOverlay" class="overlayPre" aria-hidden="true"></pre>
+          <textarea id="outEdit" class="overlayEdit" spellcheck="false" placeholder="Output will appear here (editable)"></textarea>
+        </div>
+      </section>
+    </div>
+
+    <div class="status">
+      <div id="statusMsg">Ready.</div>
+      <div><span class="mono" id="lenMsg">0 chars</span></div>
+    </div>
+  </div>
+
+<script>
+  // Elements
+  const elIn = () => document.getElementById('inEdit');
+  const elOut = () => document.getElementById('outEdit');
+  const elInOverlay = () => document.getElementById('inOverlay');
+  const elOutOverlay = () => document.getElementById('outOverlay');
+  const symbolBox = () => document.getElementById('symbolBox');
+  const sortModeEl = () => document.getElementById('sortMode');
+
+  const statusMsg = (t) => document.getElementById('statusMsg').textContent = t || '';
+  const lenMsg = (n) => document.getElementById('lenMsg').textContent = `${n} chars`;
+
+  const modes = {
+    strip:false,
+    bullets:false,
+    human:false,
+    dot:false,
+    trailSym:false,
+    csv:null
+  };
+
+  const advanced = {
+    symbolKeep: new Map(),
+    symbolCounts: new Map(),
+    hoverCp: null,
+    lastOutputText: ""
+  };
+
+  const state = {
+    workingText: "",
+    updatingUI: false
+  };
+
+  function setPill(id, on){
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('on', !!on);
+  }
+
+  function normalizeToLF(t){
+    return (t ?? '')
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .replace(/\u2028|\u2029/g, "\n");
+  }
+
+  function stripWeirdWhitespace(t){
+    t = normalizeToLF(t);
+    t = t.replace(/\u200B/g, '').replace(/\u00A0/g, ' ');
+    t = t.split("\n").map(l => l.replace(/[ \t]+$/g,'')).join("\n");
+
+    const lines = t.split("\n");
+    const out = [];
+    let blank = 0;
+    for (const l of lines) {
+      if (l.trim() === '') { blank++; if (blank <= 1) out.push(''); }
+      else { blank = 0; out.push(l); }
+    }
+    return out.join("\n");
+  }
+
+  function removeLeadingBulletsAndMarkers(t){
+    t = normalizeToLF(t).replace(/\u00A0/g,' ');
+    const markerRegex = new RegExp(
+      "^\\s*(?:" +
+        "(?:\\d+|[A-Za-z]|[IVXLCDM]{1,8})\\s*(?:[\\.)]|:)\\s*" +
+        "|" +
+        "\\[(?:\\s|x|X)\\]\\s*" +
+        "|" +
+        "(?:[•·‣⁃◦▪▫▶▸\\*o\\-–—‐-−﹣－]+\\s*)+" +
+        "|" +
+        "(?:[>]+\\s*)+" +
+      ")+","u"
+    );
+
+    return t.split("\n").map(line => {
+      let l = line.replace(/[ \t]+$/g,'');
+      l = l.replace(markerRegex, '').replace(/^\s+/,'');
+      for (let i=0; i<3; i++){
+        l = l.replace(/^(\*\*|__)(.+?)\1(?=[:\s])/u, '$2');
+        l = l.replace(/^(\*|_)(.+?)\1(?=[:\s])/u, '$2');
+        l = l.replace(/^(`)(.+?)\1(?=[:\s])/u, '$2');
+        l = l.replace(/^\s+/,'');
+      }
+      return l;
+    }).join("\n");
+  }
+
+  function removeTrailingDot(t){
+    t = normalizeToLF(t);
+    return t.split("\n").map(line => {
+      let l = line.replace(/[ \t]+$/g,'');
+      if (l.endsWith('.') && !l.endsWith('..')) l = l.slice(0, -1);
+      return l;
+    }).join("\n");
+  }
+
+  function removeTrailingSemicolonOrColon(t){
+    t = normalizeToLF(t);
+    return t.split("\n").map(line => {
+      let l = line.replace(/[ \t]+$/g,'');
+      if (l.endsWith(';') || l.endsWith(':')) l = l.slice(0, -1);
+      return l;
+    }).join("\n");
+  }
+
+  function tsvToCsv(t, withSpace){
+    t = normalizeToLF(t);
+    const sep = withSpace ? ", " : ",";
+    return t.split("\n").map(row => {
+      if (!row.includes("\t")) return row;
+      const cells = row.split("\t").map(c => (c ?? '').trim());
+      return cells.map(v => (/[,"\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v)).join(sep);
+    }).join("\n");
+  }
+
+  function humanAccessibleSymbols(t){
+    t = normalizeToLF(t);
+
+    const map = new Map([
+      ['“','"'], ['”','"'], ['„','"'], ['‟','"'], ['❝','"'], ['❞','"'],
+      ['‘',"'"], ['’',"'"], ['‚',"'"], ['‛',"'"],
+      ['«','<<'], ['»','>>'], ['‹','<'], ['›','>'],
+
+      ['‐','-'], ['‒','-'], ['–','-'], ['—','-'], ['−','-'], ['﹣','-'], ['－','-'],
+      ['…','...'],
+
+      ['•','-'], ['·','-'], ['‣','-'], ['⁃','-'], ['◦','-'], ['▪','-'], ['▫','-'],
+
+      ['\u00A0',' '], ['\u2007',' '], ['\u202F',' '], ['\u2009',' '], ['\u200A',' '],
+      ['\u200B',''], ['\uFEFF',''],
+    ]);
+
+    let out = "";
+    for (const ch of t) out += (map.has(ch) ? map.get(ch) : ch);
+    out = out.replace(/[ \t]{2,}/g, ' ');
+    return out;
+  }
+
+  function detectSymbolCounts(text){
+    const t = normalizeToLF(text);
+    const counts = new Map();
+    for (const ch of t) {
+      if (/\s/u.test(ch)) continue;
+      if (!/[\p{L}\p{N}]/u.test(ch)) {
+        counts.set(ch, (counts.get(ch) || 0) + 1);
+      }
+    }
+    return counts;
+  }
+
+  function escapeHtml(s){
+    return (s ?? '')
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#39;");
+  }
+
+  function sortSymbols(symbols, counts){
+    const mode = sortModeEl().value || "codepoint";
+    if (mode === "codepoint") {
+      symbols.sort((a,b) => a.codePointAt(0) - b.codePointAt(0));
+      return;
+    }
+    if (mode === "count_desc") {
+      symbols.sort((a,b) => {
+        const ca = counts.get(a) || 0;
+        const cb = counts.get(b) || 0;
+        if (cb !== ca) return cb - ca;
+        return a.codePointAt(0) - b.codePointAt(0);
+      });
+      return;
+    }
+    if (mode === "count_asc") {
+      symbols.sort((a,b) => {
+        const ca = counts.get(a) || 0;
+        const cb = counts.get(b) || 0;
+        if (ca !== cb) return ca - cb;
+        return a.codePointAt(0) - b.codePointAt(0);
+      });
+      return;
+    }
+  }
+
+  function renderSymbolsList(symbolCounts){
+    advanced.symbolCounts = symbolCounts;
+
+    const symbols = Array.from(symbolCounts.keys());
+    const present = new Set(symbols);
+
+    for (const key of advanced.symbolKeep.keys()) {
+      if (!present.has(key)) advanced.symbolKeep.delete(key);
+    }
+    for (const sym of symbols) {
+      if (!advanced.symbolKeep.has(sym)) advanced.symbolKeep.set(sym, true);
+    }
+
+    if (symbols.length === 0) {
+      symbolBox().innerHTML = `<div class="empty">No symbols detected in the current text.</div>`;
+      return;
+    }
+
+    sortSymbols(symbols, symbolCounts);
+
+    const items = symbols.map(sym => {
+      const keep = advanced.symbolKeep.get(sym) !== false;
+      const cp = sym.codePointAt(0);
+      const id = `sym_${cp}`;
+      const label = sym === " " ? "[space]" : sym;
+      const code = "U+" + cp.toString(16).toUpperCase().padStart(4,'0');
+      const cnt = symbolCounts.get(sym) || 0;
+
+      return `
+        <li class="symItem"
+            onmouseenter="hoverCp(${cp})"
+            onmouseleave="hoverCp(null)">
+          <input type="checkbox" id="${id}" ${keep ? "checked" : ""} onchange="toggleCp(${cp}, this.checked)" />
+          <label for="${id}">
+            <code>${escapeHtml(label)}</code>
+            <span class="symMeta">${code}</span>
+            <span class="symCount">×${cnt}</span>
+          </label>
+        </li>
+      `;
+    }).join("");
+
+    symbolBox().innerHTML = `<ul class="symbolGrid">${items}</ul>`;
+  }
+
+  function toggleCp(cp, checked){
+    if (cp === null || cp === undefined) return;
+    const sym = String.fromCodePoint(cp);
+    advanced.symbolKeep.set(sym, checked);
+    applyPipeline();
+  }
+
+  function applySymbolFiltering(t){
+    for (const [sym, keep] of advanced.symbolKeep.entries()) {
+      if (keep === false) t = t.replaceAll(sym, '');
+    }
+    return t;
+  }
+
+  // v20: render highlight overlay for a given text + cp
+  function renderOverlay(preEl, plainText, cp){
+    if (cp === null || cp === undefined) {
+      preEl.textContent = plainText;
+      return;
+    }
+    const sym = String.fromCodePoint(cp);
+    let html = "";
+    for (const ch of plainText) {
+      if (ch === sym) html += `<span class="hi">${escapeHtml(ch)}</span>`;
+      else html += escapeHtml(ch);
+    }
+    preEl.innerHTML = html;
+  }
+
+  function hoverCp(cp){
+    advanced.hoverCp = cp;
+
+    // highlight in Output (as before)
+    renderOverlay(elOutOverlay(), advanced.lastOutputText || '', advanced.hoverCp);
+
+    // NEW v20: highlight in Input as well (raw input text in the input box)
+    renderOverlay(elInOverlay(), elIn().value || '', advanced.hoverCp);
+  }
+
+  function applyPipeline(){
+    if (state.updatingUI) return;
+
+    let t = state.workingText ?? "";
+
+    if (modes.strip)     t = stripWeirdWhitespace(t);
+    if (modes.bullets)   t = removeLeadingBulletsAndMarkers(t);
+    if (modes.dot)       t = removeTrailingDot(t);
+    if (modes.trailSym)  t = removeTrailingSemicolonOrColon(t);
+    if (modes.csv === 'comma')       t = tsvToCsv(t, false);
+    if (modes.csv === 'comma_space') t = tsvToCsv(t, true);
+    if (modes.human)     t = humanAccessibleSymbols(t);
+
+    const counts = detectSymbolCounts(t);
+    renderSymbolsList(counts);
+
+    const out = applySymbolFiltering(t);
+
+    advanced.lastOutputText = out;
+
+    state.updatingUI = true;
+    elOut().value = out;
+    state.updatingUI = false;
+
+    // output overlay
+    renderOverlay(elOutOverlay(), out, advanced.hoverCp);
+
+    // input overlay (always reflects current input box content)
+    renderOverlay(elInOverlay(), elIn().value || '', advanced.hoverCp);
+
+    lenMsg(out.length);
+
+    const onList = [];
+    if (modes.strip) onList.push("Strip whitespace");
+    if (modes.bullets) onList.push("Remove bullets/markers");
+    if (modes.human) onList.push("Human-accessible symbols");
+    if (modes.dot) onList.push("Remove trailing dot");
+    if (modes.trailSym) onList.push("Remove trailing ;/:");
+    if (modes.csv === 'comma') onList.push("TSV→CSV(,)");
+    if (modes.csv === 'comma_space') onList.push("TSV→CSV(, )");
+
+    const removedSyms = [];
+    for (const [sym, keep] of advanced.symbolKeep.entries()) {
+      if (keep === false) removedSyms.push(sym);
+    }
+    if (removedSyms.length) onList.push(`Symbols removed: ${removedSyms.map(s => `'${s}'`).join(", ")}`);
+
+    statusMsg(onList.length ? `Active: ${onList.join(" · ")}` : "Ready.");
+  }
+
+  function onInputChanged(){
+    if (state.updatingUI) return;
+    state.workingText = elIn().value || "";
+    applyPipeline();
+  }
+
+  function onOutputEdited(){
+    if (state.updatingUI) return;
+    state.workingText = elOut().value || "";
+    applyPipeline();
+  }
+
+  function toggleMode(which){
+    modes[which] = !modes[which];
+    if (which === 'strip') setPill('m_strip', modes.strip);
+    if (which === 'bullets') setPill('m_bullets', modes.bullets);
+    if (which === 'human') setPill('m_human', modes.human);
+    if (which === 'dot') setPill('m_dot', modes.dot);
+    if (which === 'trailSym') setPill('m_trailSym', modes.trailSym);
+    applyPipeline();
+  }
+
+  function toggleCsv(which){
+    modes.csv = (modes.csv === which) ? null : which;
+    setPill('m_csv_comma', modes.csv === 'comma');
+    setPill('m_csv_comma_space', modes.csv === 'comma_space');
+    applyPipeline();
+  }
+
+  async function copyOut(){
+    const t = advanced.lastOutputText || '';
+    try{
+      await navigator.clipboard.writeText(t);
+      statusMsg("Copied output to clipboard.");
+      setTimeout(() => applyPipeline(), 800);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = t;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      statusMsg("Copy blocked by browser policy. Text selected — press Ctrl+C.");
+      setTimeout(() => { document.body.removeChild(ta); }, 1000);
+    }
+  }
+
+  function clearModes(){
+    state.updatingUI = true;
+    elIn().value = '';
+    elOut().value = '';
+    state.updatingUI = false;
+
+    state.workingText = "";
+    advanced.lastOutputText = "";
+    advanced.hoverCp = null;
+
+    modes.strip = false;
+    modes.bullets = false;
+    modes.human = false;
+    modes.dot = false;
+    modes.trailSym = false;
+    modes.csv = null;
+
+    setPill('m_strip', false);
+    setPill('m_bullets', false);
+    setPill('m_human', false);
+    setPill('m_dot', false);
+    setPill('m_trailSym', false);
+    setPill('m_csv_comma', false);
+    setPill('m_csv_comma_space', false);
+
+    advanced.symbolKeep.clear();
+    advanced.symbolCounts.clear();
+    symbolBox().innerHTML = `<div class="empty">Paste text into Input or edit Output to see detected symbols.</div>`;
+
+    elInOverlay().textContent = '';
+    elOutOverlay().textContent = '';
+
+    statusMsg("Cleared Modes (and input/output).");
+    lenMsg(0);
+  }
+
+  function clearAdvanced(evt){
+    if (evt) evt.preventDefault();
+
+    const currentText = advanced.lastOutputText || state.workingText || "";
+    const counts = detectSymbolCounts(currentText);
+
+    advanced.symbolKeep.clear();
+    for (const s of counts.keys()) advanced.symbolKeep.set(s, true);
+
+    renderSymbolsList(counts);
+    applyPipeline();
+    statusMsg("Advanced modes cleared (all symbols kept).");
+  }
+
+  // Keep overlays scroll-synced with their textareas
+  function syncScroll(inOrOut){
+    if (inOrOut === 'in') {
+      elInOverlay().scrollTop = elIn().scrollTop;
+      elInOverlay().scrollLeft = elIn().scrollLeft;
+    } else {
+      elOutOverlay().scrollTop = elOut().scrollTop;
+      elOutOverlay().scrollLeft = elOut().scrollLeft;
+    }
+  }
+
+  // Wire up
+  elIn().addEventListener('input', onInputChanged);
+  elOut().addEventListener('input', onOutputEdited);
+
+  elIn().addEventListener('scroll', () => syncScroll('in'));
+  elOut().addEventListener('scroll', () => syncScroll('out'));
+
+  // Init
+  state.workingText = "";
+  applyPipeline();
+
+  // expose for inline handlers
+  window.hoverCp = hoverCp;
+  window.toggleCp = toggleCp;
+  window.toggleMode = toggleMode;
+  window.toggleCsv = toggleCsv;
+  window.copyOut = copyOut;
+  window.clearModes = clearModes;
+  window.clearAdvanced = clearAdvanced;
+  window.applyPipeline = applyPipeline;
+</script>
+</body>
+</html>
